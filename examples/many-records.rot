@@ -1,0 +1,56 @@
+.[R
+.[H
+.[T Multiple Record Support
+.[A Chris Lumens
+.[D August 5, 1999
+.[V 0.6.0
+.]H
+rotfl easily supports having several records in the same file.  In fact,
+this has been supported since before the first public version - 0.5.7.
+This was one of the first things that I wrote into rotfl.  I believe that
+its support for multiple records is one of rotfl's greatest advantages.
+
+However, I have made some recent improvements in how these records are 
+managed.  Version 0.6.0 introduced the table of contents, which allows the
+user to quickly skip between records.  You can access the table of contents
+by hitting 't' at the prompt.  
+
+Try checking out the table of contents right now...
+.]R
+.[R
+.[H
+.[A Chris Lumens
+.[D August 5, 1999
+.[V 0.6.0
+.]H
+The table of contents lists records by their titles.  However, the title is
+not required.  For that matter, the header is not required either.  So how
+do you pick a record in the table of contents that does not have a title?
+
+The answer is that untitled records are listed as 'untitled' in the table
+of contents.  You'll have to select that record to see what it is all 
+about, but you can see that it does not have a title.
+
+If you look at the table of contents, you'll see that this record doesn't
+have a title.
+.]R
+.[R
+.[H
+.[T Future Changes
+.[A Chris Lumens
+.[D August 5, 1999
+.[V 0.6.0
+.]H
+I am working on some new changes for rotfl as we speak.  If you check out
+the TODO file that came with rotfl, you'll see some of the new additions
+I'd like to get done.  Some of those are being worked on, and some of them
+are just ideas.
+
+I will probably rewrite the main loop of the code to cut down on the file
+i/o.  I'll also be bringing back the record numbers and line numbers.  Those
+were removed because of how the table of contents and the main loop work
+together.  
+
+Anyways, this is just another example to show you how the table of contents
+works.  Have fun using rotfl, and keep looking out for new versions!
+.]R

@@ -1,0 +1,122 @@
+rotfl HOWTO
+===========
+
+What is this document?
+----------------------
+This file describes the various tags that rotfl uses, as well as the basic
+layout of a file.  In general, this document outlines how you go about writing
+an rotfl-formatted file.  It's not really hard at all, as you will see.
+Unfortunately, simplicity does come at a price.  There are some limitations
+to rotfl, some of which are rather annoying and I should be fixing.
+
+
+File layout
+-----------
+Here's the normal layout of a rotfl file:
+.[R
+.[H
+.[# here's where you'd place author, title, and date information
+.]H
+.[# here's where you'd place the main text...including any other tags
+.]R
+
+You can include more records in the file by just starting another record tag
+after the last one (remember to place it on a new line!).  Any regular text
+between records is ignored.  rotfl will pause after each record and wait for 
+you to hit 'n'.
+
+
+rotfl Prompt
+------------
+After each record or after each screenful of text, rotfl will display a 
+prompt.  There are a few keys that you can press at this prompt:
+
+n - continue on to the next screen or record
+t - display the table of contents
+q - quit rotfl immediately
+
+From the table of contents screen, you can pick a record to view.  rotfl will
+skip to that record and continue on from there.  The records are shown in the
+order they appear in the file and are identified by their title.  If the 
+record does not have a title, it will be shown as 'untitled'.
+
+
+rotfl tags
+----------
+An rotfl tag goes at the very beginning of a line.  Right now, you can only
+have one tag per line, but that may very well change in a later version.  Any
+text after the tag is what the tag will apply to (well...there's an exception
+to that rule.  see below.)  All tags start with the characters:
+
+.[ (to open the tag)
+.] (to close the tag)
+
+and are then followed by a letter.  Some tags require an open and a close to
+be effective.  This is equivalent to the <html> and </html> tags.  The left
+bracket form opens the tag, and the right bracket form closes the tag.  Some
+tags don't need an open and a close (in fact, most don't) so for those you
+can use either form.
+
+# - A one line comment.  Anything on the line is ignored.
+
+c - Center justifies the current line.
+
+l - Specifies that the current line is the element of a list.
+
+o - Prints a lines of "-" immediately above the current line of text.
+
+r - Right justifies the current line.
+
+u - Underlines whatever text follows it with a line of "-".
+
+A - Specifies the author of the record.  Put it in the header section.  This
+    tag is not required.
+
+D - Specifies the date the record was created.  Put it in the header section.
+    This tag is not required.
+
+E - Specified the email address of the author.  Put it in the header section.
+    This tag is not required and is not currently displayed.
+
+H - Specifies the beginning and ending of a header.  If you use a header, it
+    must come at the very beginning of the record.  You cannot nest headers.
+    Note that if you do not use a header, rotfl will pick some reasonable
+    defaults for the header information.
+
+I - Indents the current line by 12 spaces.
+
+L - Specifies the beginning and ending of a list.  This tag needs an open and a 
+    close, and can be nested several levels deep.  There's no limit on the 
+    nesting level, but it will start to look bad after more than 4 or 5.  You
+    can also specify what marker you want to appear at the beginning of each
+    list item.  This is done by placing the marker character after the .[L
+    tag.  If you don't pick your own marker, the default is an 'o'.  Also, each
+    list can have its own tag.
+
+    You can now have numbered list.  Set the marker to "#" and the list will
+    be numbered.  If you want to use a literal hash mark, set the marker to
+    "\#", just like you would in c or perl to escape characters.  Note that
+    this makes the version tag important.  The numbered list was introduced
+    with version 0.6.1.  So, records with a version at least that recent will
+    use the numbered list if they see a hash mark.  Older versions will use the
+    hash mark as the marker.  The default record version is the same as the 
+    version of rotfl you are using.
+
+M - Specifies the date the record was modified.  Put it in the header section.
+    This tag is not required.
+
+O - Prints a lines of "=" immediately above the current line of text.
+
+R - Specifies the beginning and ending of a record.  This tag needs an open and
+    a close, and cannot be nested.
+
+T - Specifies the title of the record; goes in the header section.  The title
+    is required.
+
+U - Underlines whatever text follows it with a line of "=".
+
+V - Specifies which version of rotfl thie current record was written for.  This
+    tag ensures that your older documents will work the same with a new version
+    of rotfl as they do with the older versions.  Please see the WARNING file
+    that came with the rotfl distribution for important information on this
+    tag.

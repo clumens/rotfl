@@ -1,0 +1,17 @@
+.[R
+.[H
+.[A Chris Lumens
+.[T Random Tag Action
+.[D June 19, 1999
+.[V 0.5.7
+.]H
+
+.[U Underlining
+You can underline things two different ways using rotfl.  If you want to 
+make something a main header, you can use the capital U tag.  For little
+headers, you can use the lowercase u tag, as shown below.
+
+.[u Indenting
+.[I Use the I tag to indent text twelve spaces from the left.
+.[I Remember to watch out for line length, or rotfl will complain.
+.]R

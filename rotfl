@@ -1,0 +1,1044 @@
+#!/usr/bin/perl
+#
+# Regular Old Text Formatting Language
+# a program to read in a file and output it nicely formatted
+#
+# by Chris Lumens
+# last modified on February 29, 2000
+# (c) 1999, 2000 Chris Lumens
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+
+
+# require some non-standard modules
+use Term::ReadKey;
+
+use constant ASSIGN  => 1;
+
+#
+# variables and constants
+#
+
+$DEV           = 0;                 #cool developmental toys
+
+$CLOSE         = ']';
+$OPEN          = '[';
+$DEF_MARKER    = 'o';               #default line marker
+$OPTS          = 'nqt';             #keys that can be pressed at the ToC prompt
+$TAGS          = 'cloruHILORU#';
+$METATAGS      = 'ADEHMRTV';        #H and R are both types (they're special)
+
+%ver           = (
+                     maj   => 0,
+                     min   => 6,
+                     patch => 5,
+                     extra => '',
+                 );
+
+   # variables taken from the shell's environment
+my %environs   = (
+                  ROT_PATH    => "/:./:$ENV{ROT_PATH}",
+                  ROT_NOWARN  => 0 || $ENV{ROT_NOWARN},
+                 ); 
+
+my $parse_only = 0;        #just checking syntax?
+my $print_only = 0;        #create printable (lpr) output?
+
+my $outlines   = 0;        #number of lines displayed for this record
+my $cur_start  = 0;        #line number the current record started on
+
+my $inrecord   = 0;        #are we in a record?
+my $inheader   = 0;        #are we in the record header?
+my $listlev    = 0;        #how many lists deep are we?
+
+my @markers;               #stack of markers used for lists
+my @warns;                 #array of errors to flush to a file if needed
+my @term_size;             #size of the terminal
+my %toc;                   #big damn hash of hashliness - hold all the metadata
+                           # about everything.  hash is keyed by line number
+                           # and holds a hash of all the other metadata
+
+#
+# general subroutines - error handling, the preprocessor, signal handling, etc.
+#
+
+   # reset all the various metadata variables from the preprocessor
+   # args: [0] 1=assign stuff to hash, 0=don't
+sub reset_meta
+{
+   if ($_[0] == ASSIGN)
+   {
+      $toc{$start_pos}{author}   = $author   if ($author);
+      $toc{$start_pos}{cdate}    = $cdate    if ($cdate);
+      $toc{$start_pos}{email}    = $email    if ($email);
+      $toc{$start_pos}{mdate}    = $mdate    if ($mdate);
+      $toc{$start_pos}{version}  = $version  if ($version);
+   }
+
+   ($author, $cdate, $mdate, $email, $version) = ('', '', '', '', '');
+}
+
+   # first pass through the input file: fill in the metadata hash, check for
+   # warnings/errors, and make sure that everything is balanced
+sub preprocessor
+{
+   my ($in_header, $records, $got_title) = (0, 0, 0);
+
+   reset_meta(ASSIGN);
+
+   while (<IN>)
+   {
+      if (/^\.[\[\]][$METATAGS]/)
+      {
+         my ($status, $tag, $text) = unpack ("x1 a1 a1 x1 a*", $_);
+
+         $text =~ s/^\s+//;
+         $text =~ s/\s+$//;
+
+         SWITCH: {
+            if (($tag eq 'A') && ($in_header == 1))
+            {
+               $author = $text;
+               last SWITCH;
+            }
+            if (($tag eq 'D') && ($in_header == 1))
+            {
+               $cdate = $text; 
+               last SWITCH;
+            }
+            if (($tag eq 'E') && ($in_header == 1))
+            {
+               $email = $text;
+               last SWITCH;
+            }
+            if (($tag eq 'H') && ($status eq $OPEN))
+            {
+               rotfl_error ("line $.: unbalanced header tags") 
+                  unless ($in_header++ == 0);
+               last SWITCH;
+            }
+            if (($tag eq 'H') && ($status eq $CLOSE))
+            {
+               rotfl_error ("line $.: unbalanced header tags") 
+                  unless ($in_header-- == 1);
+
+               if ($version && (calc_version($version) < '063'))
+               {
+                  $title = 'untitled' unless ($got_title == 1);
+               }
+               else
+               {
+                  rotfl_error ("line $.: record must have a title")
+                     unless ($got_title == 1);
+               }
+
+               last SWITCH;
+            }
+            if (($tag eq 'M') && ($in_header == 1))
+            {
+               $mdate = $text;
+               last SWITCH;
+            }
+            if (($tag eq 'R') && ($status eq $OPEN))
+            {
+               $start_pos  = tell(IN)-length;
+               
+               $got_title  = 0;
+               $records++;
+               last SWITCH;
+            }
+            if (($tag eq 'R') && ($status eq $CLOSE))
+            {
+               reset_meta(1);
+               $records++;
+               last SWITCH;
+            }
+            if (($tag eq 'T') && ($in_header == 1))
+            {
+               $toc{$start_pos}{title}   = $text;
+               $got_title                = 1;
+               last SWITCH;
+            }
+            if (($tag eq 'V') && ($in_header == 1))
+            {
+               $version = $text;
+               last SWITCH;
+            }
+         }
+      }
+   }
+
+   rotfl_error ('unbalanced record tags')   unless ($records % 2 == 0);
+   rotfl_error ('no record tags found')     if     ($records == 0);
+   rotfl_error ('unbalanced header tags')   unless ($in_header == 0);
+
+   if ($DEV)
+   {
+         #dump hash out all over the place
+      foreach $a (keys %toc)
+      {
+         print "$a: {\n";
+         for $b (keys %{$toc{$a}})
+         {
+            print "   $b=\"$toc{$a}{$b}\"\n"
+         }
+         print "}\n";
+      }
+      rotfl_close();
+   }
+}
+
+   # make a scalar of the version tag
+   # args: [0] the version, of the form "x.x.x"
+sub calc_version
+{
+   my @version = unpack ("a1 x1 a1 x1 a1", $_[0]);
+
+   return "$version[0]$version[1]$version[2]";
+}
+
+   # check to see if the line lengths are okay
+   # args: [0] text to check, [1] max length for text
+sub check_line
+{
+   my ($text, $len) = @_;
+   rotfl_warn ('line too long') if (length($text) > $len);
+}
+
+   # handle interrupts
+sub signal_int
+{
+   $SIG{INT} = \&signal_int;
+   rotfl_close();
+}
+
+   # create a warning log if needed
+sub check_warn_count
+{
+   if (@warns)                         #flush warnings to a file
+   {
+      if ($environs{ROT_NOWARN} == 0)  #...but not if env. variable is set
+      {
+         open (ERR, ">$warn_log") || rotfl_close ("cannot create $warn_log");
+         foreach (@warns) { print ERR; }
+         close (ERR);
+  
+         print "\n" . scalar(@warns) . 
+               " warning(s) found!  check $warn_log for details.\n"
+      }
+   }
+   else
+   {
+      print ("file parses correctly\n") if ($parse_only == 1);
+   }
+}   
+
+   # warnings are not fatal (sounds like c, doesn't it?)
+   # args: [0] warning message
+sub rotfl_warn
+{
+   if ($environs{ROT_NOWARN} == 0)
+   {
+         #add a warning to the array
+      $msg = "$infile [$.] : $_[0]\n";
+      push (@warns, $msg);
+   }
+}
+
+  # errors are fatal 
+  # args: [0] error message
+sub rotfl_error
+{
+   print <<"errors";
+error in $infile
+$_[0] 
+fatal error encountered...exiting
+errors
+
+   rotfl_close_file();
+}
+
+   # call subroutine for each tag
+   # args: [0] tag, [1] text, [2] tag status
+sub deal_with_tags
+{
+   my ($tag, $text, $status) = @_;
+
+   SWITCH: {
+      if ($tag eq 'c')
+      {
+         rotfl_center_justify($text);
+         last SWITCH;
+      }
+      if ($tag eq 'l')
+      {
+         $listlev > 0 
+            ? rotfl_list_item($text)
+            : rotfl_warn     ('cannot print list items outside of a list');
+         last SWITCH;
+      }
+      if ($tag eq 'o')
+      {
+         rotfl_overline($text, '-');
+         last SWITCH;
+      }
+      if ($tag eq 'r')
+      {
+         rotfl_right_justify($text);
+         last SWITCH;
+      }
+      if ($tag eq 'u')
+      {
+         rotfl_underline($text, '-');
+         last SWITCH;
+      }
+      if ($tag eq 'H')
+      {
+         rotfl_header($status);
+         last SWITCH;
+      }
+      if ($tag eq 'I')
+      {
+         rotfl_indent($text);
+         last SWITCH;
+      }
+      if ($tag eq 'L')
+      {
+         rotfl_list($status, $text);
+         last SWITCH;
+      }
+      if ($tag eq 'O')
+      {
+         rotfl_overline($text, '=');
+         last SWITCH;
+      }
+      if ($tag eq 'R')
+      {
+         rotfl_record($status);
+         last SWITCH;
+      }
+      if ($tag eq 'U')
+      {
+         rotfl_underline($text, '=');
+         last SWITCH;
+      }
+      if ($tag eq '#') {last SWITCH;}     #don't do anything with comments
+
+      rotfl_warn ("unrecognized markup tag: $tag");  #default case
+   }
+}
+
+#
+# subroutines to deal with searching and the display
+#
+
+   # print all normal output here.  printf's do their own thing, and the error
+   # code still handles its out printing.  this is so we can print debugging
+   # information in front of every line, if needed.
+   # args: [0] text to print
+sub rotfl_print
+{
+   print ("$_[0]") unless ($parse_only == 1);
+}
+
+   # move filehandle to a specific record to get it ready to display
+   # args: [0] location to go to
+sub goto_record
+{
+   seek (IN, $_[0], 0);
+
+   $cur_start  = $_[0];                #get new information from toc hash
+   $inrecord   = 0;                    #this is very important!
+}
+
+   # display the table of contents, then prompt for which record to go to
+sub display_toc
+{
+   my $i          = 0;
+   my $input_num  = 0;
+   
+   system ("clear");
+   rotfl_center_justify ('Table of Contents');
+
+   foreach (sort {$a <=> $b} keys %toc)
+   {
+      printf ("%3d. %s\n", ++$i, $toc{$_}{title});
+   }
+   
+   ReadMode (0);                       #return to original keyboard mode 
+   rotfl_print ("\nEnter the record number to view: ");
+   chomp ($input_num = <STDIN>);
+   ReadMode (4);                       #back to keypress mode
+  
+   foreach (sort {$a <=> $b} keys %toc)
+   {
+      if (--$input_num == 0)
+      {
+         goto_record($_);
+         last;
+      }
+   }
+
+   system ("clear");
+   $outlines = 0;
+}
+
+   # a key has been pressed.  do something about it.
+   # args: [0] key that was pressed
+sub do_keypress
+{
+   SWITCH: {
+      if ($_[0] eq 'n') { system("clear"), last SWITCH;  }
+      if ($_[0] eq 'q') { signal_int();                  }
+      if ($_[0] eq 't') { display_toc(), last SWITCH;    }
+   }
+}
+
+   # one page at a time...just like "more"
+   # args: [0] message to print
+sub more
+{
+   my $key = '';
+
+      #print appropriate message
+   $_[0] eq 'line'
+      ? rotfl_print("-- more to record | hit 'n' to continue --") 
+      : rotfl_print("-- end of record  | hit 'n' for next --"); 
+
+   $key = ReadKey(-1) while ($key !~ /[$OPTS]/);
+   do_keypress($key);
+
+   $outlines = 0;
+}
+
+#
+# subroutines for each tag; starts with rotfl_ to prevent conflicts with perl
+#
+
+   # .[c or .]c - center justify text
+   # args: [0] text to justify
+sub rotfl_center_justify
+{
+   my $text       = $_[0];
+   my $whitespace = int (($FULL_LEN-length($text))/2);
+
+   check_line ($text, $FULL_LEN);
+   
+   $text = ' 'x($whitespace) . $text;
+
+   rotfl_print ("$text\n");
+   $outlines++;
+}
+
+   # .[l or .]l - print out a list item
+   # args: [0] text to list
+sub rotfl_list_item
+{
+   my $list_item = ' 'x(3*($listlev+1));           #tab text over
+   $list_marker  = $markers[$listlev-1];           #get marker out of array
+
+   if ($list_marker =~ /\d+/)
+   {
+      ($markers[$listlev-1])++;                    #increment numbered lists
+      $list_item .= "$list_marker. $_[0]";
+   }
+   else 
+   { 
+      $list_item .= "$list_marker $_[0]"; 
+   }
+
+   check_line ($list_item, $FULL_LEN);
+   rotfl_print ("$list_item\n");
+   $outlines++;
+}
+
+   # .[r or .]r - right justify text
+   # args: [0] text to justify
+sub rotfl_right_justify
+{
+   my $line = '';
+   my $len  = $FULL_LEN-length($_[0]);
+
+   $line .= ' 'x$len . $_[0];
+
+   check_line ($line, $FULL_LEN);
+   rotfl_print ("$line\n");
+   $outlines++;
+}
+
+   # called by print_header
+   # args: [0] length of line, [1] text on left, [2] text on right
+   # returns: a string with text on each side
+sub print_columns
+{
+   my $remain = $_[0]-length($_[1])-length($_[2])-1;
+
+   $top  = $_[1];
+   $top .= ' 'x$remain . $_[2] . "\n";
+
+   check_line($top, $_[0]);
+   return $top;
+}
+
+   # called by rotfl_header
+   # print out the header data from the big uber-hash of doom
+sub print_header
+{
+   my $cdate = "added on $toc{$cur_start}{cdate}"    
+      if ($toc{$cur_start}{cdate});
+   my $mdate = "modified on $toc{$cur_start}{mdate}" 
+      if ($toc{$cur_start}{mdate});
+   my $author= "by $toc{$cur_start}{author}"
+      if ($toc{$cur_start}{author});
+   my $title = $toc{$cur_start}{title};
+
+   rotfl_print (print_columns ($FULL_LEN, $title, $cdate));
+   rotfl_print (print_columns ($FULL_LEN, $author, $mdate));
+
+   rotfl_print ("\n");
+   $outlines += 4;
+}
+
+   # .[H or .]H - toggle if we are in the header block. the header contains the 
+   #              date, author, title, and version number (all optional)
+   # args: [0] tag status (opened or closed)
+sub rotfl_header
+{
+   if (($_[0] eq $OPEN) && ($inheader == 0)) #beginning of header
+   {
+      $inheader = 1;
+   }
+   elsif (($_[0] eq $OPEN) && ($inheader == 1))
+   {
+      rotfl_error ('cannot nest headers');
+   }
+   elsif (($_[0] eq $CLOSE) && ($inheader == 0))
+   {
+      rotfl_error ('must be in a header before it can be closed');
+   }
+   else
+   {
+      $inheader = 0;
+      print_header();
+   }
+}
+
+   # .[I or .]I - indent the current line by 12 spaces
+   # args: [0] text to indent
+sub rotfl_indent
+{
+   check_line ($_[0], $INDENT_LEN);
+   rotfl_print ("            $_[0]\n");
+   $outlines++;
+}
+
+   # .[L or .]L - deal with list nesting
+   # args: [0] list status, [1] marker
+sub rotfl_list
+{
+   my ($stat, $mark) = @_;
+
+   if ($stat eq $OPEN)                 #starting a new list
+   {
+      chomp ($mark);
+      SWITCH: {
+         if ($mark eq '#')             #it's a numbered list
+         {
+            if (calc_version($toc{$cur_start}{version}) >= '061') 
+            { 
+               push (@markers, '1');
+            }
+            else
+            { 
+               push (@markers, '#');
+            }
+            last SWITCH;
+         }
+         if ($mark eq '\#')            #it's a literal hash mark
+         {
+            if (calc_version($toc{$cur_start}{version}) >= '061') 
+            { 
+               push (@markers, '#'); 
+            }
+            else
+            { 
+               push (@markers, '\#');
+            }
+            last SWITCH;
+         }
+         if ($mark ne '')              #another kind of marker was specified
+         {
+            push (@markers, $mark);
+            last SWITCH;
+         }
+         push (@markers, $DEF_MARKER); #use the default marker
+      }
+      
+      $listlev++;
+   }
+   elsif (($stat eq $CLOSE) && ($listlev == 0))
+   {
+      rotfl_error ('must be in a list before it can be closed');
+   }
+   else
+   { 
+      $listlev--;
+      pop (@markers);                  #remove this list's marker
+   }
+}
+
+   # .[O or .]O - print out text with a line over it
+   # args: [0] text, [1] overline character
+sub rotfl_overline
+{
+   my $len = length($_[0]);
+
+   check_line ($_[0], $FULL_LEN);
+
+   for (1 .. $len)
+   {
+      rotfl_print ($_[1]);
+   }
+   rotfl_print ("\n");
+   rotfl_print ("$_[0]\n");
+
+   $outlines += 2;
+}
+
+   # .[R or .]R - toggle our record status; a record is simply a block that
+   #              contain a header and a body.
+   # args: [0] tag status (opened or closed)
+sub rotfl_record
+{
+   if (($_[0] eq $OPEN) && ($inrecord == 0))
+   { 
+      system ("clear") unless (($parse_only == 1) || ($print_only == 1));
+      
+      $inrecord   = 1;
+      $cur_start  = tell(IN)-length;
+   }
+   elsif (($_[0] eq $OPEN) && ($inrecord == 1))
+   {
+      rotfl_error ('cannot nest records');
+   }
+   elsif (($_[0] eq $CLOSE) && ($inrecord == 0))
+   {
+      rotfl_error ('must be in a record before it can be closed');
+   }
+   else
+   { 
+      if ($outlines < ($TERM_HEIGHT-1))
+      {
+         for ($outlines .. $TERM_HEIGHT-1) 
+         {
+            rotfl_print ("\n");
+         }
+      }
+      $inrecord = 0; 
+      $outlines = 0;
+      
+      more ('record') unless (($parse_only == 1) || ($print_only == 1));
+   }
+}
+
+   # .[U or .]U - print out underlined text
+   # args: [0] text, [1] underline character
+sub rotfl_underline
+{
+   my $len = length($_[0]);
+
+   check_line ($_[0], $FULL_LEN);
+
+   rotfl_print ("$_[0]\n");
+   for (1 .. $len)
+   {
+      rotfl_print ($_[1]);
+   }
+   rotfl_print ("\n");
+
+   $outlines += 2;
+}
+
+#
+# subroutines for rotfl initialization and quitting
+#
+
+   # display the command line options and quit
+sub help
+{
+   print <<End;
+
+usage: rotfl [options] filename
+   -h | --help       Display this help screen and exit
+   -p | --parse      Only check to see if the input is valid
+   -r | --print      Create output suitable for piping to the printer
+   -v | --version    Display the version and exit
+
+End
+   exit;
+}
+
+   # display the version number and quit
+sub version
+{
+   print <<"End";
+   
+rotfl version $ver{maj}.$ver{min}.$ver{patch} $ver{extra}
+by Chris Lumens
+
+End
+   exit;
+}
+
+   # process the command-line arguments
+   # right now, we can only have one command line argument.  fix later (?)
+sub do_args
+{
+   help()                     if ($ARGV[0] eq '-h' || $ARGV[0] eq '--help');
+   $parse_only, shift @ARGV   if ($ARGV[0] eq '-p' || $ARGV[0] eq '--parse');
+   $print_only, shift @ARGV   if ($ARGV[0] eq '-r' || $ARGV[0] eq '--print');
+   version()                  if ($ARGV[0] eq '-v' || $ARGV[0] eq '--version')
+}
+
+   # do everything that is not file-specific; called once only
+sub rotfl_init
+{
+   $SIG{INT}   = \&signal_int;               #install signal handler
+   ReadMode (4);                             #go into raw keyboard mode
+   @term_size  = GetTerminalSize;            #get the screen size
+
+   $FULL_LEN   = $term_size[0]   || 80;      #full line
+   $TERM_HEIGHT= $term_size[1]   || 25;      #height of the screen
+   $LINE_LEN   = $FULL_LEN-3;                #regular line
+   $INDENT_LEN = $FULL_LEN-12;               #an indented line
+}
+
+   # initialization called for each input file
+sub rotfl_init_file
+{
+      #try filename and filename.rot, just in case extension is not specified
+   OUTER: foreach my $trial ($infile, "$infile.rot")
+   {
+         #search ROT_PATH environment var for the input file
+      foreach my $dir (split(/:/, $environs{ROT_PATH}))
+      {
+         $real_file = "$dir/$trial";
+      
+         if (-e $real_file)
+         {
+            $warn_log = '/tmp/' . 
+               substr($real_file, rindex($real_file, '/')+1) . '.warn';
+            open (IN, $real_file) 
+               || rotfl_close_file ("cannot open $real_file for processing");
+            last OUTER;
+         }
+      }
+   }
+
+   if (! $warn_log)
+   {
+      rotfl_close_file ("file $infile not found in $environs{ROT_PATH}");
+   }
+}
+
+   # close the input file and check for warnings
+sub rotfl_close_file
+{
+   close (IN);
+   check_warn_count() if ($parse_only == 0);
+}
+
+   # close the input file, check for warnings, and die if needed
+   # args: [0] message to die with, [1] check warn count
+sub rotfl_close
+{
+   ReadMode (0);                       #return to original keyboard mode
+   rotfl_close_file();                 #close the currently open file
+
+   die ("$_[0]\n") if ($_[0]);         #print message if we're dying now
+   rotfl_print ("\n");                 #new line for the prompt
+   exit;
+}
+
+#
+# main program
+#
+
+   #make sure there's something to do
+help() if (! $ARGV[0]);
+
+   #time for the program
+do_args();
+rotfl_init();                             #init for first run
+
+while ($infile = shift @ARGV)             #loop over each input file
+{
+   rotfl_init_file();                     #per-file initializations
+   preprocessor();
+
+   seek (IN, 0, 0);                       #back to beginning of file
+   $. = 0;                                #update line counter
+
+      #time to process the input file...one line at a time
+   while (<IN>)
+   {
+      more('line') if (($outlines == $TERM_HEIGHT-1) && ($parse_only == 0)
+                                                     && ($print_only == 0));
+   
+      if (/^\.[\[\]][$TAGS]/)             #line starts with a tag
+      {
+            #get tag info from line
+         ($tag_status, $in_tag, $in_text) = unpack("x1 a1 a1 x1 a*", $_);
+   
+         $in_text =~ s/^\s+//;            #remove leading spaces from text
+         $in_text =~ s/\s+$//;            #remove trailing spaces from text
+
+         deal_with_tags ($in_tag, $in_text, $tag_status);
+      }
+      elsif (! /^\.[\[\]][$METATAGS]/)    #it's just straight-up text
+      { 
+            #must be in record and outside of header in order to print
+         if (($inrecord == 1) && ($inheader == 0))
+         {
+            check_line ($_, $LINE_LEN);
+            rotfl_print ("   $_");
+            $outlines++;
+         }
+      }
+   }
+   
+   rotfl_close_file();
+}
+rotfl_close();
+
+=head1 NAME
+
+rotfl - regular old text formatting language
+
+=head1 SYNOPSIS
+
+rotfl [-h|--help] [-p|--parse] [-r|--print] [-v|--version] <filename>
+
+=head1 DESCRIPTION
+
+rotfl is a simple text formatting program.  It is designed for those that are
+in need of a formatting system, but do not want to take the time to learn one
+of the more complicated programs.  It is therefore designed with simplicity
+in mind, but still contains some advanced features.
+
+Note that <filename> can be a list of files to display, each separated by a 
+space.  This will cause rotfl to display a file, wait for you, and then
+repeat the process.
+
+By default, all rotfl files should be given the extension .rot.  rotfl will
+first search the current directory for the file exactly as named on the
+command line.  If this fails, it will search all directories specified
+in the ROT_PATH environment variable (see below).  Failing this, it will
+append the .rot extension to the given filename and try the whole search
+procedure again.
+
+=head1 OPTIONS
+
+=over 4
+
+=item -h | --help
+
+Displays the rotfl help screen, which lists the valid command line options
+and a short description of each.
+
+=item -p | --parse
+
+Checks to see if the input file is correct.  The file is completely parsed and
+checked, but the only output is from warnings and errors.  If the file is 
+syntatically correct, a message is displayed at the end.
+
+=item -r | --print
+
+Prints out the entire formatted output without any breaks.  This is good
+for piping to lpr (or whatever print software you use).
+
+=item -v | --version
+
+Displays the rotfl version and terminates imme-gee-ately (Agent Smith style).
+
+=back
+
+=head1 PROMPT OPTIONS
+
+The rotfl prompt is what is displayed at the bottom of the screen between
+records, or between each screenful of text (in the case of a really long
+record).  There are various keys that you can hit to do things at this
+prompt.  Here is a listing of those keys and what functions they perform.
+
+=over 4
+
+=item n
+
+Goes to the next screen or record (depending on what the prompt says).
+
+=item q
+
+Quits rotfl immediately.
+
+=item t
+
+Goes to the table of contents.  From there, you can select a record to skip to.
+If you just hit enter, rotfl will continue with the current record.  Records
+in the table of contents are displayed in the order that they appear in the
+file.
+
+=back
+
+=head1 FORMATTING TAGS
+
+rotfl works by reading in a regular text file that contains special tags.  When
+one of these tags are encountered within the file, the text that follows it is
+formatted accordingly.  There are limitations to these tags.  There can only be
+one tag per line, and it must occur at the very beginning of the line.  Any text
+found betweem the start of the line and the first tag is disregarded.  Also, any
+text that does not have special formatting tags is printed out exactly as it
+appears in the input file.
+
+=over 4
+
+=item .[#
+
+Indicated a one line comment.
+
+=item .[c
+
+Center justifies the text on the current line.
+
+=item .[l
+
+Indicated that the text on the current line is the element of a list, and
+will be indented three spaces from the previous level of indentation.
+
+=item .[o
+
+Prints a line of text with a row of dashes immediately above it.
+
+=item .[r
+
+Right justifies the text on the current line.
+
+=item .[u
+
+Underlines the text on the current line with a row of dashes.
+
+=item .[A
+
+Specifies the author of the current record.  This tag is places within the
+header section of the current record.
+
+=item .[D
+
+Specifies the date that the current record was added to the file.  This tag is
+placed within the header section of the current record.
+
+=item .[E
+
+Specifies the email address of the author.  This tag is placed within the
+header section and is not required.  Please note that this tag is not currently
+displayed.
+
+=item .[H
+
+Specifies the opening of the header section.  This section must be placed at the
+very beginning of the record, and contains information about the record itself.
+Records cannot be nested, and must be terminated by usine the close record tag.
+
+=item .]H
+
+The close header tag.
+
+=item .[I
+
+Indents the text on the current line by 12 spaces.
+
+=item .[L
+
+Specifies the beginning of a list.  Lists can be nested, and each nested list
+will be indented three spaces from the previous list.  The user can also 
+specify which character is to appear at the beginning of each list item
+("marker").  This is done by placing a space and then the desired marker
+character after the open list tag.  If no marker is chosen, the default is an
+"o".  The marker character is local to the current list, so each list can have
+its own marker.
+
+=item .]L
+
+The close list tag.
+
+=item .[M
+
+Specifies the date that the current record was last modified.  This tag is
+placed within the header section of the current record, and is not required.
+
+=item .[O
+
+Prints a line of text with a row of equals signs immediately above it.
+
+=item .[R
+
+Specifies the opening of the record.  This is one document's worth of stuff.
+The record holds the header section as well as the actual text itself.  There 
+can be several records in one file.  rotfl will pause between each record in
+the file and display a prompt indicating how many records there are and what
+number the current record is.
+
+=item .]R
+
+The close record tag.
+
+=item .[T
+
+Specifies the title of the current record.  This tag is placed within the 
+header section of the current record.  The title is required.
+
+=item .[U
+
+Underlines the text on the current line with a row of equals signs.
+
+=item .[V
+
+Specifies the version of rotfl that the document was designed for.  This tag
+has now gained importance with the development of numbered lists.  Documents
+designed for versions >= 0.6.1 will use numbered lists, while older versions
+will keep their previous behavior.
+
+=back
+
+=head1 ENVIRONMENT
+
+=over 4
+
+=item ROT_PATH
+
+If B<ROT_PATH> is set, its value is used as the path to search for the rotfl 
+files.  Please note that the name of this variable has changed!  It used to 
+be called ROTPATH, but has been renamed for compatibility with future 
+environment variables.
+
+=item ROT_NOWARN
+
+If set, rotfl will not generate a warning log in /tmp and will not 
+complain about warnings upon shutdown.  Consider this a way to keep
+rotfl mostly quiet.
+
+=back
+
+=head1 BUGS
+
+See the bug listing in the TODO file, which should have come with your
+distribution of rotfl.  If you find a bug that is not listed in that file,
+please contact the author immediately so it can be resolved.
+
+=head1 AUTHOR
+
+Chris Lumens <chris@bangmoney.org>
+
+=cut

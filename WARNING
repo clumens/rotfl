@@ -1,0 +1,27 @@
+Here's your warning right now...
+
+For now, I am maintaining compatibility with older versions of documents
+(hence the versioning tag).  This introduces a lot of redundant code because
+I have to check the version and do something appropriately.  Older document
+versions will need something different done than in the newer version.
+
+Right now, this is only a problem with the numbered lists and such.  But it
+will probably become more and more of a problem as I create some new features
+and such.  It's going to get rather unmanagable.  So, this is the warning:
+
+When I finally reach version 1.0, I am going to reset the compatibility
+issues.  That is, documents created for pre 1.0 releases will be formatted
+according to the 1.0 rules.  I will then start supporting backwards
+compatibility for everything that comes after 1.0.
+
+So, please take the time to update your documents as new versions come out.
+I hate doing this, but I also do not want to make too much of a problem for
+myself.  If you really think this is a bad idea, give me a mail and we
+can talk it over.
+
+Thanks for using rotfl, and I will continue to work on updates and 
+improvements.
+
+- Chris Lumens
+  chris@bangmoney.org
+

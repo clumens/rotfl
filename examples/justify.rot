@@ -1,0 +1,16 @@
+.[R
+.[H
+.[A Chris Lumens
+.[T Text Justification
+.[D June 19, 1999
+.[V 0.5.7
+.]H
+
+rotfl allows text to be justified in two different ways.
+
+.[c Text can be centered on a line,
+.[r or it can be right justified.
+
+Just make sure that you don't make the lines too long, or it will
+look really bad!
+.]R

@@ -1,0 +1,101 @@
+rotfl readme file
+=================
+
+How to install?
+---------------
+Run the install.pl program to install rotfl.  You'll have to be root in order
+to do that.  The install program now asks you for a prefix directory to 
+install everything to.  This is a fix from how it used to work.
+
+By the way, rotfl also comes with an uninstall program so that you can remove
+it cleanly if you want to.  The installation program automagically puts the
+prefix into the uninstall program so that you can successfully uninstall.
+
+
+What is rotfl?
+--------------
+rotfl is a simple text-formatting language.  It's similar in function to TeX,
+HTML, nroff/groff, Postscript, etc.  However, it is far less complicated than
+any of those.  I made it very simple because I was too lazy to learn how to
+write things in any of those more complicated formatting languages, but not
+too lazy to write up a new one.
+
+It simply reads a regular text file and looks for special tags.  When one of
+those tags is encountered, it applies a special format to the following text.
+
+
+What do I need to run it?
+-------------------------
+Well, you don't need too much to run rotfl.  The basic requirements are
+a Perl interpreter and any operating system that can run said Perl
+interpreter.  I am personally developing on a Linux system, and it runs
+just fine.  However, any system that can run Perl and the Term::ReadKey
+library is godo to go.
+
+To create rotfl-formatted files, all you need is a simple text editor.
+
+
+What can rotfl do?
+------------------
+The basic unit in rotfl is a record.  A record is sort of like an entry into
+a diary.  You can have a bunch of these in a file.  Each record can be whatever
+length you want.  rotfl will display a prompt after each page of text, as well
+as after each record.  rotfl can also handle a header for each record - which 
+includes a title, author, and a date - lists, indentation, and simple
+justification of text.  It can also support nesting of lists and indents each
+list a little further over.
+
+rotfl allows you to quickly skip between these records by going to the table
+of contents and selecting a record to view.  This can be accessed from the
+prompt.  Check the rotfl man page for other things you can do at the prompt.
+
+
+What can't rotfl do?
+--------------------
+Well, rotfl is currently pretty limited.  It cannot deal with things like 
+tables of text (yuck), bold text, or anything too fancy in general.  But I 
+am working on improvements and new features.
+
+
+What websites/other info/related programs are there?
+----------------------------------------------------
+The official rotfl website is:
+   http://www.bangmoney.org/projects/rotfl
+
+It has some information on it, and is where the newest version will always
+be announced.  It looks bad, but I will get around to fixing that up
+eventually.
+
+You can also go to:
+   http://micron999.com/web/rotfl
+
+This website is maintained by Mike Burns <netgeek@downcity.net>, who has 
+given me a lot of good ideas about what to do with rotfl.  It also has the 
+rotfl2web program, which converts rotfl to an html/css page.  Pretty cool.
+
+There is now a rotfl mailing list.  To subscribe, send a message to:
+
+   services-rotfl-subscribe@bangmoney.org
+
+And follow the directions it gives you.  This list is currently low traffic
+and is not available in digest form.  If there is a need for a digest form,
+that can be done.
+
+
+Who wrote it and how can I help?
+--------------------------------
+rotfl was written by Chris Lumens <chris@bangmoney.org>.  If you want to help
+out or make suggestions or anything, feel free to hack on my code (it's just a
+simple Perl script).  Please follow my style if possible and send me a patch
+that I can apply to my program for later distribution.  Also, include a 
+description of your patch and your email address so you can get credit.
+
+By the way, rotfl is a GPL'ed program.  I'm not getting into the big 
+explanation of what that means.  Read the COPYING file that was included
+with this distribution in order to figure out what the license terms are.
+
+
+How to create rotfl formatted files?
+------------------------------------
+Look at the HOWTO file for detailed instructions and a list of all the various
+tags and stuff.  Or you could just look at the sample files and copy those.

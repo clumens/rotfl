@@ -1,0 +1,31 @@
+#!/usr/bin/perl
+#
+# uninstall program for rotfl 0.6.4
+# last modified on December 17, 1999 by Chris Lumens
+#
+# automagically configured by install.pl
+
+# insert prefix here
+
+# variables for the rest of the program...
+$BIN = "$PREFIX/bin";
+$MAN = "$PREFIX/man/man1";
+$LIB = "$PREFIX/lib/rotfl";
+$DOC = "$PREFIX/doc/rotfl";
+
+print <<Welcome;
+*** You must be root to remove rotfl!  If you are not root, quit ***
+***   now by hitting control+c.  This program will fail badly    ***
+***                     if you are not root!                     ***
+
+Press enter to continue...
+Welcome
+<STDIN>;
+
+print "removing rotfl files...\n";
+system "rm $BIN/rotfl";
+system "rm $MAN/rotfl.1.gz";
+system "rm -r $LIB";
+system "rm -r $DOC";
+
+print "All done...thanks for using rotfl!\n"

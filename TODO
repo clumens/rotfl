@@ -1,0 +1,37 @@
+new features
+============
+
+immediate
+---------
+- work on having some sort of man-like system (man1, man3, etc)
+- print header at beginning of each screen of text
+- make --print option do page breaks, one record per page, etc
+- make better documentation!
+- merge rotfl2web into the distribution
+- file locking
+
+before 1.0
+----------
+- add new tags: bold, footer, language used
+- suck entire input file into an array to deal with
+- allow people to specify what to underline/overline with (?)
+- allow multiple tags per line (major rewriting...ugh)
+- place metadata into some sort of include file (?)
+- have one tag for a line (A, D, etc) and one for a block (L, H, etc) (?)
+- remove dependence on Term::ReadKey: if it doesn't exist, provide a suck
+  version to use.
+- read gzipped files  
+
+after 1.0
+---------
+- linking among records or documents (all hypertext style) (?)
+- replace calls to "clear" with appropriate Perl replacements (curses module?)
+- have some real preprocessor things: ifdef, macros, conditionals, etc. (?)
+- X interface using the QT widget set
+
+bugs to work out
+================
+- strangeness occurs when using table of contents under xterm.  figure that out.
+- fix command line args so that they work like they should (use getopt, etc)
+- strangeness with lists and the page break
+- fix line numbers for record skipping action

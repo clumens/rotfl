@@ -1,0 +1,29 @@
+version 0.6.5
+=============
+- Stripped the ampersands from procedure calls.  We don't really need those.
+- Initialization and closing subroutines broken into two parts: a global part
+  and a file-specific part.
+- Main processing loop wrapped in another while in order to loop over all input
+  files.
+
+version 0.6.4
+=============
+- Moved all the environment variable handling to the beginning of the
+  program.  Instead of declaring them up at the top and then initializing
+  them later in rotfl_init(), I just moved everything into a hash and
+  initialize them at the same time.
+
+version 0.6.3
+=============
+- Created CHANGES file for documenting source code changes.
+- Metadata for all records is now stored in one hash of hashes.  It is still
+  called the "toc", but now it holds more than just the title and the starting
+  line number.  The hash is indexed by line number.  Then, the rest of the
+  metadata is stored within the hash.
+- In order to accomodate the revised table of contents, a new variable keeps
+  track of what line number the current record started on.  This allows us
+  to pull the correct information out of the hash.
+- All string processing dealing with the metadata has been moved into the
+  preprocessor code.
+- I removed the functions that are supposed to be updating variables for the
+  metadata.  The preprocessor now deals with that.

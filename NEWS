@@ -1,0 +1,238 @@
+version 0.6.5
+=============
+- The man page is now gzipped before being installed so as to keep with
+  the way that all other man pages are done.
+- The install.pl script now makes use of "install" to get everything done.
+  This was actually changed in 0.6.4, but I forgot to mention it.
+
+- rotfl now accepts a list of input files and processes each one in turn.
+  If you specify several files for input, the first one will be displayed.
+  When you are done looking at that one, the next is formatted and displayed.
+- The install.pl script is now a little smarter.  Instead of assuming 
+  the locations of certain binaries, it actually goes out and looks for them
+  in several "standard" locations.
+- The rotfl documentation is now stored in POD format right in the source 
+  code.  This means that documentation can be generated as man pages, info
+  pages, postscript, or html using utilities that come with Perl.
+- Added a new copyright notice to the top of the script.  The copyright is
+  still GPL, but I just wanted to tack a new notice onto the file.
+
+version 0.6.4
+=============
+- If a file is not found in the $ROT_PATH envirnoment variable, it errors and
+  spits out the value of the $ROT_PATH variable, rather than just saying that
+  it's not found.
+- Fixed the --parse option so that it only says the file parses correctly
+  if it did.
+- Fixed the default $ROT_PATH so that / is added to it.  This means that 
+  you can now specify the full path name to a file on the command line.
+  Oops.
+- Fixed the --print option.  The header is now broken up into multiple lines,
+  instead of one very long line.  This was because I forgot to append a "\n"
+  to the text to be printed.  Sigh...
+- Got rid of the extraneous "line too long" bug.  This brings the count up
+  to three really stupid bugs fixed.  I believe it's time for release...
+
+- Added the $ROT_NOWARN environment variable.  If this is set, rotfl will
+  not say anything about warnings and will not generate the warning log
+  in /tmp.  Just set $ROT_NOWARN to anything in your shell and warnings
+  will get ignored.
+- Line numbers are back, with one problem.  If you have a file with several
+  records and skip around, any warnings you encounter will be reported as
+  being on the wrong line.  Going straight through the file will report
+  the correct line numbers.  I know what causes this and am working on it.
+- rotfl can now find rotfl formatted files that are not specified with an
+  extension.  If you do not provide an extension for the filename, it 
+  will first look through $ROT_PATH for that filename, followed by the 
+  filename with .rot extension.
+
+- The $ROTPATH envirnoment variable has been renamed $ROT_PATH to maintain
+  consistency with some new variables I might be introducing.  Sorry if
+  this gets anyone.
+- Updated the man page.  
+- The documentation for rotfl has been moved to where it should have been
+  all along - /usr/local/doc/rotfl (or whatever other prefix you choose.
+  If you don't have a /usr/local/doc directory, one will be made for you.
+- My email address has (finally) changed to <chris@bangmoney.org>.  Please
+  update whatever accordingly.
+
+version 0.6.3
+=============
+- All documents must now have a title.  If a record does not have a title, a
+  warning will be generated.  This is because I am going to stay backwards
+  compatible with older versions of rotfl for now.  Expect this to change
+  once it hits 1.0.  The default name will still be "untitled".
+
+- Added the E tag for the author's email address.  This is currently not 
+  displayed, and is not set to any default.
+- Added the M tag.  This is the same as the D tag, only it specifies when
+  the record was last modified.  This tag is not required, and will not be
+  set to any default if left out.
+- Changed around the layout of the header.  I thought it would be better to
+  line up the dates, so they are.  I moved the author's name down under the
+  title.
+- rotfl now makes use of the ROTPATH environment variable.  Just make this
+  variable a colon delimited list of directories where you hide your rotfl
+  files.  When it starts up, rotfl will automatically search each directory
+  in ROTPATH (starting with the current directory) until it finds the file.
+
+- Added the CHANGES file, which details changest that have been made to the
+  source.  These changes may not be visible to the user, but are included
+  so that anyone developing rotfl-related programs can see what source code
+  has been modified.  The casual user does not need to be concerned with this.
+- The extension for a rotfl file is now .rot.  Please use this for all your
+  text files that are to be processed by rotfl so that you can tell what
+  kind of file they are.
+- Updated the documentation for the news tags and stuff.
+
+version 0.6.2
+=============
+- Fixed some of my syntax to work with version of Perl that are older than
+  mine (pre 5.005_03).  Thanks to Konrad Roziewski <cr@xox.pl> for this one.
+- Issues with the name of the ReadKey module in the install script have been
+  resolved.  They were actually resolved the day after I posted version
+  0.6.1.  An updated one was immediately posted.  Sorry for making such a
+  stupid mistake.
+- I just realized that I am an idiot.  All my docs say that numbered lists
+  were introduced in version 0.6.0.  But they we're really introduced until
+  version 0.6.1.  The docs now reflect that properly.
+
+- Changed the install.pl and uninstall.pl scripts.  install.pl now asks you
+  for an installation prefix directory.  This is then automagically written
+  into the uninstall.pl script so it knows where to uninstall from.
+- Added the o and O tags.  These are the overline tags, and work in exactly
+  the same way as the underline tags do.  However, they print a line above
+  the text instead of under it.
+- Added the -r and --print command line options.  This option just streams
+  formatted output to the screen.  There is no opportunity for user
+  interaction.  This is so you can send redirect the output to your printer
+  and get a hard copy.  It looks rather bad right now.  Ideally, i'd have it
+  insert a page feed between each record.
+  
+- Updated man page.
+- Added the WARNING file to describe some upcoming dangers about the V tag.
+- Prioritized the TODO file.
+- Changed how I do the version number.
+- This NEWS file is now grouped by what kind of changes I made.  The first
+  group is bug fixes, the second is new features, and the last is miscellaneous
+  and non-critical fixes (like this).
+  
+version 0.6.1
+=============
+- Problems with error messages getting printed out twice at the end of the
+  program has been solved.  This was a stupid error.
+- Another stupid error.  The date, author, title, and version is now reset to
+  nothing at the start of each record.  I should have been doing this all along.
+
+- Lists can now be numbered.  This is done by specifying the list's marker
+  as a hash symbol (#).  You can nest numbered list, and each list will follow
+  its own numbering system.  A hash can be used as the list marker by using
+  \# as the marker.  I did this to make a system similar to how c and perl
+  make you escape certain characters to use them literally.
+
+  The numbered list is available only in records designed for versions >=
+  0.6.1.  Older documents will still have a # as the marker, instead of the
+  numbering.  It has now become important to use the version tag.  The default
+  version for a record is the version number of the current version of rotfl.
+  
+
+version 0.6.0
+=============
+- Added the -p and --parse command line options.  Both of these only check the
+  grammar of the input file.  If there are any warnings or errors, those
+  messages are output as normal.  The actual formatted output is suppressed.
+- I added a table of contents.  This is a listing of all the records in the
+  file.  You press a number and can skip to that specific article.  You can
+  jump around all you want.  Press 't' at the prompt to get to it.
+- The prompt between screens of text now does now.  You can press various
+  keys and do stuff.  Check HOWTO to see what you can do.
+
+- Updated the man page accordingly
+- New example file to show off the table of contents
+- The record number and line number is no longer displayed on the prompt.  This
+  is because I cannot do that with the current code and how the table of
+  contents works.  I believe that the record/line numbers will be coming back 
+  in the next version (0.6.1?)
+- Articles without a title will be shown as "untitled" in the table of 
+  contents.
+
+version 0.5.10
+==============
+NOTE: This version was unreleased because it was all expreimental and stuff.
+      I am getting the 0.6 release ready, and this version was broken all over
+      the place while I decided how to go about doing a few things.  Also,
+      more code cleanup stuff.
+
+- Regular text that is in the header or in between records no longer causes
+  a warning.
+
+- Added a few command line options: -h, --help, -v, --version
+- We are now using the Term::ReadKey library so that I can get more control over
+  the keyboard.  Because of this, rotfl will determine your screen size and 
+  output a screenful of text that fits your screen's size.
+- The V tag is now enabled.  This is placed in the header and is used for you
+  to tell which version of rotfl that the record was written for.  It is not
+  currently displayed anywhere on the screen.  There's really no use for the 
+  V tag yet, but there might be later.
+
+- Code cleanup stuff: I reversed all the one-line loops, including while, for,
+  and foreach.  I sure hope this doesn't confuse me later.  Also, I remove a
+  lot of the stupid for loops and replaced them with the .. operator...it just
+  makes things cleaner.
+
+version 0.5.9
+=============
+NOTE: This version was unreleased because I was just doing some general code
+      cleanup stuff.  I didn't do anything really deserving of a public 
+      release...but I did enough to bump up the version number.  By the way,
+      we are ramping up to the 0.6 release.
+
+- Error file now named only using the file's name, not the path to it.
+- An unrecognized tag has been moved from an error down to a warning, which 
+  means that rotfl will no longer die if it sees a tag it doesn't understand.
+
+- Change from using substr() to get tags to the faster (and cooler) unpack().
+- Removed a close() and open() on the input file by replacing them with seek().
+- General code clean-up stuff.
+
+version 0.5.8
+=============
+- Error log now appears in /tmp by default.  This is because you may have some
+  rotfl-formatted files laying around in places with tight permissions, and 
+  you can't view them because it can't create an error log.
+
+- Now deals with SIGINT.
+- The error log is now only created if you have warnings.  Warning messages 
+  are placed into an array as they occur.  When the program exits, the size
+  of that array is checked, and any warnings are written to the log.
+
+version 0.5.7
+=============
+NOTE: first publically released version.
+
+- Fixed up error checking in the preprocessor.  It now makes sure the header
+  and record tags are not nested as it counts up everything else.  This means
+  that there shouldn't be any of those errors as the text is being displayed.
+  This also means that I should be able to get rid of some of the later error
+  checking, but I will probably leave it in for now.
+
+- Back to using list markers.  A marker can be defined immeadiately after the 
+  opening tag of a list.  This marker gets stuck on the front of every item in
+  the list.  If no tag is given, the default is an 'o'.  These markers are 
+  local only to the current list.  So, you can have a different marker for
+  every list and repeat them and so forth.  Wahoo.
+
+version 0.5
+===========
+- Changed how tags work.  They no longer are simply .%.  There's now an open
+  form (.[) and a close form (.]).  This allows for cool things like nesting.
+- Allow nesting of lists.
+- Lists can no longer specify their marker.  This is because we could be nesting
+  them, and we don't know what marker to come back to.  This could probably be
+  fixed rather easily by making some sort of "marker stack".  In fact, that's
+  probably the next thing I will work on...after a little testing.
+
+before version 0.5
+==================
+- Didn't keep a changelog
+- Wrote everything except what's in the changelog

@@ -1,0 +1,28 @@
+.[R
+.[H
+.[A Chris Lumens
+.[T Lists
+.[D June 19, 1999
+.[V 0.6.1
+.]H
+
+There are all sorts of things you can do with lists:
+
+.[L
+.[l You can use the default marker.
+.[l You can do random stuff that I can't think of right now.
+.[L -
+.[l You can nest lists.
+.[l You can specify your own marker.
+.[l By the way, lists indent a little more each time.
+.]L
+.[l The marker returns to normal in the previous list.
+.[l I obviously got nothing.
+.[L #
+.[l Lists can also be numbered.
+.[l The marker increments for each list item.
+.[l You can nest numbered lists, and everything works as it should.
+.[l Numbered lists work with documents designed for version >= 0.6.1.
+.]L
+.]L
+.]R
